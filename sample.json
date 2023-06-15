@@ -1,0 +1,50 @@
+{
+	"req1": {
+		"url": "https://www.something.com/route/{{slug_var}}/?some_param={{param_var}}",
+		"method": "GET",
+		"num_runs": 5,
+		"num_per_run": 20,
+		"concurrent": 10,
+		"url-vars": {
+			"slug_var": ["value1", "value2", "value3"],
+			"param_var": [1,2,3,4,5,6,7,8,9,0]
+		},
+		"ab-options": [
+			"-A auth-username:password",
+			"-c 10",
+			"-h",
+			"-v 1",
+			"-T application/json"
+		]
+	},
+	"req2": {
+		"url": "https://www.something.com/{{some_slug}}",
+		"method": "POST",
+		"num_runs": 20,
+		"num_per_run": 2,
+		"concurrent": 5,
+		"url-vars": {
+			"some_slug": ["postslug1", "postslug2"]
+		},
+		"body": {
+			"id": 5,
+			"some_values": [1,2,3,4,5],
+			"some_param": "{{some_param_value}}",
+			"another_param": {
+				"property1": 123,
+				"property2": "{{property2_value}}"
+			}
+		},
+		"body-vars": {
+			"some_param_value": ["value1", "value2", "value3"],
+			"property2_value": [1,2,3,4,5]
+		},
+		"ab-options": [
+			"-A auth-username:password",
+			"-c 10",
+			"-h",
+			"-v 1",
+			"-T application/json"
+		]
+	}
+}
