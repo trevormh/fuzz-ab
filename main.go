@@ -13,7 +13,7 @@ func main() {
 	pathPtr := flag.String("path", "", "Path to file containing requests to build and send")
 	flag.Parse()
 
-	requests,err := GetRequests(request_names,*pathPtr)
+	requests,err := BuildRequests(request_names,*pathPtr)
 
 	if err != nil {
 		fmt.Println(err)

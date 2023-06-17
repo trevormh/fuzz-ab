@@ -1,6 +1,6 @@
 {
 	"req1": {
-		"url": "https://www.something.com/route/{{slug_var}}/?some_param={{param_var}}",
+		"url": "https://www.something.com/route/{{slug_var}}/?some_param={{param_var}}&something={{param_var}}",
 		"method": "GET",
 		"num_runs": 5,
 		"num_per_run": 20,
