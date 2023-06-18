@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"reflect"
@@ -85,9 +84,6 @@ func parse_url_vars(url string) ([]string, map[string][]int) {
 	// indicse of variable locations in slice
 	re := regexp.MustCompile(`{{(.*?)}}`)
 	matches := re.FindAllStringIndex(url, -1)
-	
-	// fmt.Println(matches)
-	// panic("something")
 
 	var url_slice []string
 	var_map := make(map[string][]int)
@@ -123,14 +119,10 @@ func parse_url_vars(url string) ([]string, map[string][]int) {
 }
 
 /*
-Makes cartesian product (aka all combinations) for a 
-map of slices.
-Ex:
-input = {"key1": [1,2], "key2": ["a", "b"]}
-Result: [
-	{"key1":1, "key2":"a"}, {"key1":1 "key2":"b"},
-	{"key1":2, "key2":"a"}, {"key1":2, "key2":"b"},
-]
+Get cartesian product (aka all combinations) for a map of slices.
+Ex: input = {"key1": [1,2], "key2": ["a", "b"]}
+Result: [{"key1":1, "key2":"a"}, {"key1":1 "key2":"b"},
+	{"key1":2, "key2":"a"}, {"key1":2, "key2":"b"}]
 */
 func get_var_combinations(vars map[string][]interface{}) ([]map[string]interface{}) {
 	var combinations []map[string]interface{}
@@ -174,6 +166,27 @@ func replace_url_vars(url_slice []string, var_locations map[string][]int, vars m
 	return strings.Join(url_slice, "")
 }
 
+
+func create_ab_call(url string, req_data JsonRequestBody) string {
+	var ab_options []string
+	// iterate over the provided AbOptions and remove concurrent or 
+	// number of requests if provided
+	for _, option := range req_data.AbOptions {
+		// check for concurrent flag and skip if it's provided
+		concurrent_match, _ := regexp.Match(`-c \d+`, []byte(option))
+		if concurrent_match {
+			continue
+		}
+		num_match, _ := regexp.Match(`-n \d+`, []byte(option))
+		if num_match {
+			continue
+		}
+		ab_options = append(ab_options, option)
+	}
+
+	return "ab " + strings.Join(ab_options, " ") + " " + url
+}
+
 /*
 Takes the parsed json data that has been converted to a map and
 builds the requests that will be used to call ab
@@ -189,16 +202,17 @@ func build(request_data map[string]JsonRequestBody) ([]Request, error) {
 		request.NumRuns = req_data.NumPerRun
 		request.Payload = req_data.Payload
 
-		var url_strs []string
+		var ab_calls []string
+		// Get all the combinations of parameters provided in the json file
 		var_combos := get_var_combinations(req_data.UrlVars)
+		// Build the ab_calls using these combinations
 		for _, combo := range var_combos {
 			url := replace_url_vars(url_slice, var_map, combo)
-			// each combo will be added the number times specified by the num_per_run
-			for i := 0; i < req_data.NumPerRun; i++ {
-				url_strs = append(url_strs, url)
-			}
+			ab_call := create_ab_call(url, req_data)
+			ab_calls = append(ab_calls, ab_call)
+			
 		}
-		request.Requests = url_strs
+		request.Requests = ab_calls
 		requests = append(requests, request)
 	}
 	return requests, nil
@@ -206,22 +220,8 @@ func build(request_data map[string]JsonRequestBody) ([]Request, error) {
 
 
 func BuildRequests(request_names []string, path string) ([]Request, error) {
-	var requests []Request
-	
-	// get the path of the json file
-	if path == "" {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return requests, errors.New("Unable to locate home directory")
-		}
-		path = home + "/fuzz-ab.json"
-	}
-
 	// read the file contents
 	file, err := get_file_contents(path)
-	if err != nil {
-		return nil, err
-	}
 
 	// convert the json data to a map
 	request, err := unmarshall_json(file, request_names)

@@ -11,6 +11,7 @@
 		},
 		"ab-options": [
 			"-A auth-username:password",
+			"-n 5",
 			"-c 10",
 			"-h",
 			"-v 1",
