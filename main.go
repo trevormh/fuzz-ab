@@ -39,5 +39,5 @@ func main() {
 		return
 	}
 
-	fmt.Println(requests)
+	Execute(requests)
 }

@@ -14,7 +14,7 @@ type AbRequest struct {
 	Method string
 	Payload map[string]interface{}
 	NumRuns int
-	Requests []string
+	Requests [][]string
 }
 
 
@@ -76,8 +76,8 @@ func (request JsonRequestBody) get_var_combinations() ([]map[string]interface{})
 
 // Takes the variables extracted from the JSON input file
 // and inserts them into the url_slice in their positions
-// according to the var_locations map and sets the URL property 
-// on the JsonRequestBody request.
+// according to the var_locations map. Using this data also
+// sets the URL property on the JsonRequestBody request.
 func (request *JsonRequestBody) replace_url_vars(url_slice []string, var_locations map[string][]int, vars map[string]interface{}) {
 	// vars are the variables in the url to be replaced where each
 	// key is the var name and the value is the value to be inserted
@@ -85,7 +85,7 @@ func (request *JsonRequestBody) replace_url_vars(url_slice []string, var_locatio
 		// check that the variable is actually used in the url.
 		// idxs are the locations in the url_slice where the
 		// value should be placed.
-		if indices, exists := var_locations[var_name]; exists {
+		if indices, ok := var_locations[var_name]; ok {
 			var str_val string
 
 			// value is a string
@@ -109,24 +109,15 @@ func (request *JsonRequestBody) replace_url_vars(url_slice []string, var_locatio
 }
 
 // combines the url and ab options to 
-func (request JsonRequestBody) create_ab_request() string {
+func (request JsonRequestBody) create_ab_request() []string {
 	var ab_options []string
+
 	// iterate over the provided AbOptions and remove concurrent or 
 	// number of requests if provided
 	for _, option := range request.AbOptions {
-		// check for concurrent flag and skip if it's provided
-		concurrent_match, _ := regexp.Match(`-c \d+`, []byte(option))
-		if concurrent_match {
-			continue
-		}
-		num_match, _ := regexp.Match(`-n \d+`, []byte(option))
-		if num_match {
-			continue
-		}
 		ab_options = append(ab_options, option)
 	}
-
-	return "ab " + strings.Join(ab_options, " ") + " " + request.Url
+	return append(ab_options, request.Url)
 }
 
 
