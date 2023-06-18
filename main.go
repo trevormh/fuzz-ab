@@ -9,7 +9,7 @@ import (
 
 
 func main() {
-	req_names := os.Args[1:] // specify which requests in json file to run
+	request_names := os.Args[1:] // specify which requests in json file to run
 	pathPtr := flag.String("path", "", "Path to file containing requests to build and send")
 	flag.Parse()
 
@@ -25,11 +25,19 @@ func main() {
 		path = *pathPtr
 	}
 
-	requests,err := BuildRequests(req_names,path)
-
+	// import json from file and convert to map
+	data, err := Import(request_names, path)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+
+	// build the ab requests from the imported data
+	requests,err := BuildAbRequests(data)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
 	fmt.Println(requests)
 }

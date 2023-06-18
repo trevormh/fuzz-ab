@@ -1,9 +1,7 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -12,22 +10,7 @@ import (
 	"github.com/trevormh/go-cartesian-product-map"
 )
 
-type JsonRequest struct {
-	Name map[string]JsonRequestBody `json:"-"`
-}
-
-type JsonRequestBody struct {
-	Url string `json:"url"`
-	Method string `json:"method"`
-	NumRuns int `json:"num_runs"`
-	NumPerRun int `json:"num_per_run"`
-	Concurrent int `json:"concurrent"`
-	UrlVars map[string][]interface{} `json:"url-vars"`
-	Payload map[string]interface{} `json:"body"`
-	AbOptions []string `json:"ab-options"`
-}
-
-type Request struct {
+type AbRequest struct {
 	Method string
 	Payload map[string]interface{}
 	NumRuns int
@@ -35,85 +18,43 @@ type Request struct {
 }
 
 
-func get_file_contents(path string) ([]byte,error) {
-	b, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-	return b, err
-}
-
-
-// Convert the json file contents to map
-func unmarshall_json(data []byte, request_names []string) (map[string]JsonRequestBody, error) {
-	var all_requests JsonRequest
-	// Each key in the json object is an unknown name.
-	// Unmarshall the json body to get all of them.
-	if err := json.Unmarshal(data, &all_requests); err != nil {
-		return nil, err
-	}
-
-	// Users can specify which requests they want to run when the 
-	// json file contains more than one request.
-	// If the user specifies the requests to run then discard
-	// everything else not in the request_names slice
-	requests := make(map[string]JsonRequestBody)
-	for _,name := range request_names {
-		if _, exists := all_requests.Name[name]; exists {
-			requests[name] = all_requests.Name[name]
-		}
-	}
-
-	// unmarshal the bodies of each request (JsonRequestBody)
-	if err := json.Unmarshal([]byte(data), &requests); err != nil {
-		return nil, err
-	}
-
-	return requests, nil
-}
-
 // Converts the url into a slice of strings where each location
 // of a variable in the url string is an empty index in the slice.
-// Ex: https://www.example.com/{{some}}/test/{{var}}
-// is turned into [https://www.example.com/, ,/test/, ]
 // Also builds a map with each key being the variable name and
 // its value is a slice of the indexes where the values should
 // be replaced in the sliced url.
-func parse_url_vars(url string) ([]string, map[string][]int) {
+// Ex: https://www.example.com/{{some}}/test/{{var}}
+// is turned into [https://www.example.com/, ,/test/, ]
+func (request JsonRequestBody) extract_url_vars() ([]string, map[string][]int) {
 	// regex to find all the starting and ending 
 	// indicse of variable locations in slice
 	re := regexp.MustCompile(`{{(.*?)}}`)
-	matches := re.FindAllStringIndex(url, -1)
+	matches := re.FindAllStringIndex(request.Url, -1)
 
 	var url_slice []string
 	var_map := make(map[string][]int)
-	
-	
-	idx := 0 // tracks the indices for variable placement in url_slice
+
 	// iterate through the matches and build up the url_slices
 	for i, match := range matches {
 		// add 2 to the start and subtract 2 from the end to offset the braces
-		var_name := url[match[0]+2:match[1]-2] 
+		var_name := request.Url[match[0]+2:match[1]-2] 
 		
 		// select the parts of the url leading up to the first brace's index
-		if idx == 0 {
-			url_slice = append(url_slice, url[:match[0]])
-			idx += 1
+		if len(url_slice) == 0 {
+			url_slice = append(url_slice, request.Url[:match[0]])
 		} else {
-			// need to match between the last match ending index and starting index of current match
-			url_slice = append(url_slice, url[matches[i-1][1]:match[0]])
-			idx += 1
+			// append segment between the last match ending index and starting index of current match
+			url_slice = append(url_slice, request.Url[matches[i-1][1]:match[0]])
 		}
 		url_slice = append(url_slice, "") // empty placeholder index where variable will be swapped
 
 		// add an entry to the var_map indicating which indices
 		// variables should be added to in url_slice
 		if _, exists := var_map[var_name]; exists {
-			var_map[var_name] = append(var_map[var_name], idx)
+			var_map[var_name] = append(var_map[var_name], len(url_slice)-1)
 		} else {
-			var_map[var_name] = []int{idx}
+			var_map[var_name] = []int{len(url_slice)-1}
 		}
-		idx += 1
 	}
 	return url_slice, var_map
 }
@@ -124,10 +65,10 @@ Ex: input = {"key1": [1,2], "key2": ["a", "b"]}
 Result: [{"key1":1, "key2":"a"}, {"key1":1 "key2":"b"},
 	{"key1":2, "key2":"a"}, {"key1":2, "key2":"b"}]
 */
-func get_var_combinations(vars map[string][]interface{}) ([]map[string]interface{}) {
+func (request JsonRequestBody) get_var_combinations() ([]map[string]interface{}) {
 	var combinations []map[string]interface{}
 
-	for combo := range cartesian.Iter(vars) {
+	for combo := range cartesian.Iter(request.UrlVars) {
 		combinations = append(combinations, combo)
 	}
 	return combinations
@@ -135,8 +76,9 @@ func get_var_combinations(vars map[string][]interface{}) ([]map[string]interface
 
 // Takes the variables extracted from the JSON input file
 // and inserts them into the url_slice in their positions
-// according to the var_locations map and returns it as a string.
-func replace_url_vars(url_slice []string, var_locations map[string][]int, vars map[string]interface{}) (string) {
+// according to the var_locations map and sets the URL property 
+// on the JsonRequestBody request.
+func (request *JsonRequestBody) replace_url_vars(url_slice []string, var_locations map[string][]int, vars map[string]interface{}) {
 	// vars are the variables in the url to be replaced where each
 	// key is the var name and the value is the value to be inserted
 	for var_name, val := range vars {
@@ -163,15 +105,15 @@ func replace_url_vars(url_slice []string, var_locations map[string][]int, vars m
 			}
 		}
 	}
-	return strings.Join(url_slice, "")
+	request.Url = strings.Join(url_slice, "")
 }
 
-
-func create_ab_call(url string, req_data JsonRequestBody) string {
+// combines the url and ab options to 
+func (request JsonRequestBody) create_ab_request() string {
 	var ab_options []string
 	// iterate over the provided AbOptions and remove concurrent or 
 	// number of requests if provided
-	for _, option := range req_data.AbOptions {
+	for _, option := range request.AbOptions {
 		// check for concurrent flag and skip if it's provided
 		concurrent_match, _ := regexp.Match(`-c \d+`, []byte(option))
 		if concurrent_match {
@@ -184,50 +126,32 @@ func create_ab_call(url string, req_data JsonRequestBody) string {
 		ab_options = append(ab_options, option)
 	}
 
-	return "ab " + strings.Join(ab_options, " ") + " " + url
+	return "ab " + strings.Join(ab_options, " ") + " " + request.Url
 }
 
-/*
-Takes the parsed json data that has been converted to a map and
-builds the requests that will be used to call ab
-*/
-func build(request_data map[string]JsonRequestBody) ([]Request, error) {
-	var requests []Request
 
-	for name, req_data := range request_data {
-		url_slice, var_map := parse_url_vars(request_data[name].Url)
+// Receives a map of request data and builds the ab requests that will be used to call ab
+func BuildAbRequests(request_data map[string]JsonRequestBody) ([]AbRequest, error) {
+	var ab_requests []AbRequest
 
-		var request Request
-		request.Method = req_data.Method
-		request.NumRuns = req_data.NumPerRun
-		request.Payload = req_data.Payload
+	for name, request := range request_data {
+		url_slice, var_map := request_data[name].extract_url_vars()
 
-		var ab_calls []string
+		ab_request := AbRequest {
+			Method: request.Method,
+			NumRuns: request.NumPerRun,
+			Payload: request.Payload,
+		}
+
 		// Get all the combinations of parameters provided in the json file
-		var_combos := get_var_combinations(req_data.UrlVars)
+		var_combos := request.get_var_combinations()
 		// Build the ab_calls using these combinations
 		for _, combo := range var_combos {
-			url := replace_url_vars(url_slice, var_map, combo)
-			ab_call := create_ab_call(url, req_data)
-			ab_calls = append(ab_calls, ab_call)
+			request.replace_url_vars(url_slice, var_map, combo)
+			ab_request.Requests = append(ab_request.Requests, request.create_ab_request())
 			
 		}
-		request.Requests = ab_calls
-		requests = append(requests, request)
+		ab_requests = append(ab_requests, ab_request)
 	}
-	return requests, nil
-}
-
-
-func BuildRequests(request_names []string, path string) ([]Request, error) {
-	// read the file contents
-	file, err := get_file_contents(path)
-
-	// convert the json data to a map
-	request, err := unmarshall_json(file, request_names)
-	if err != nil {
-		return nil, err
-	}
-
-	return build(request)
+	return ab_requests, nil
 }
