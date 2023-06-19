@@ -17,9 +17,6 @@
 	"req2": {
 		"url": "https://www.something.com/{{some_slug}}",
 		"method": "POST",
-		"num_runs": 20,
-		"num_per_run": 2,
-		"concurrent": 5,
 		"url-vars": {
 			"some_slug": ["postslug1", "postslug2"]
 		},

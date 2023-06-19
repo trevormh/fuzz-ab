@@ -3,7 +3,19 @@
 This is a work in progress. Requests with payloads are not yet fully supported, but they will be soon!
 
 ## What is it?
-This is a wrapper around [Apache Bench](https://httpd.apache.org/docs/2.4/programs/ab.html) written in Go to provide it with some basic [fuzz testing](https://en.wikipedia.org/wiki/Fuzzing) capabilities. Create a JSON file with requests you wish to send (see the sample section), add some valaues you wish to use for fuzz testing and fuzz-ab will build all the ab calls and execute them.
+This is a wrapper around [Apache Bench](https://httpd.apache.org/docs/2.4/programs/ab.html) written in Go to provide it with some basic [fuzz testing](https://en.wikipedia.org/wiki/Fuzzing) capabilities. Create a JSON file with requests you wish to send (see the sample section), add some values you wish to use for fuzz testing and fuzz-ab will build cartesian products (aka combinations) of all the request variables, turn them into ab requests and execute all of them.
+
+###For Example...
+With the url `https://www.example.com/{{variable1}}/?param={{variable2}}`, if you wish to test multiple values for the variables you can construct an array of options, such as `["a","b"]` for `variable1` and `[1,2]` for `variable2`, all combinations of those values will be constructed into URLs and made into AB calls
+
+`https://www.example.com/a/?param=1`
+
+`https://www.example.com/a/?param=2`
+
+`https://www.example.com/b/?param=1`
+
+`https://www.example.com/b/?param=2`
+
 
 ## How to use it
 
