@@ -7,14 +7,12 @@
 			"slug_var": ["value1", "value2", "value3"],
 			"param_var": [1,2,3,4,5,6,7,8,9,0]
 		},
-		"ab-options": [
-			"-A auth-username:password",
-			"-n 5",
-			"-c 10",
-			"-h",
-			"-v 1",
-			"-T application/json"
-		]
+		"ab-options": {
+			"-n": 10,
+			"-c": 5,
+			"-C" : "session=123abc",
+			"-H": "csrftoken: abc123"
+		}
 	},
 	"req2": {
 		"url": "https://www.something.com/{{some_slug}}",
@@ -38,12 +36,11 @@
 			"some_param_value": ["value1", "value2", "value3"],
 			"property2_value": [1,2,3,4,5]
 		},
-		"ab-options": [
-			"-A auth-username:password",
-			"-c 10",
-			"-h",
-			"-v 1",
-			"-T application/json"
-		]
+		"ab-options": {
+			"-n": 10,
+			"-c": 5,
+			"-C" : "session=123abc",
+			"-H": "csrftoken: abc123"
+		}
 	}
 }

@@ -9,7 +9,6 @@ import (
 
 func handle_request_group(request_data AbRequest, ch chan string) {
 	for _, request := range request_data.Requests {
-		fmt.Println(request)
 		cmd := exec.Command("ab", request...)
 		stdout, err := cmd.Output()
 		if err != nil {

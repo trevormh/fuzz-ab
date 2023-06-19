@@ -17,7 +17,7 @@ type JsonRequestBody struct {
 	Concurrent int `json:"concurrent"`
 	UrlVars map[string][]interface{} `json:"url-vars"`
 	Payload map[string]interface{} `json:"body"`
-	AbOptions []string `json:"ab-options"`
+	AbOptions map[string]interface{} `json:"ab-options"`
 }
 
 func get_file_contents(path string) ([]byte,error) {

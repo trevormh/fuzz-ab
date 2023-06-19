@@ -74,6 +74,22 @@ func (request JsonRequestBody) get_var_combinations() ([]map[string]interface{})
 	return combinations
 }
 
+func convert_to_str(val interface{}) (string) {
+	var str_val string
+	// value is already a string
+	if str, ok := val.(string); ok {
+		str_val = str
+	// value is float64, cast it to a string					
+	} else if float_val, ok := val.(float64); ok {
+		str_val = strconv.FormatFloat(float_val, 'f', -1, 64)
+	} else {
+		fmt.Println(val)
+		fmt.Println(reflect.TypeOf(val))
+		panic("Value could not be cast to string")
+	}
+	return str_val
+}
+
 // Takes the variables extracted from the JSON input file
 // and inserts them into the url_slice in their positions
 // according to the var_locations map. Using this data also
@@ -86,22 +102,10 @@ func (request *JsonRequestBody) replace_url_vars(url_slice []string, var_locatio
 		// idxs are the locations in the url_slice where the
 		// value should be placed.
 		if indices, ok := var_locations[var_name]; ok {
-			var str_val string
 
-			// value is a string
-			if str, ok := val.(string); ok {
-				str_val = str
-			// value is float64, cast it to a string					
-			} else if float_val, ok := val.(float64); ok {
-				str_val = strconv.FormatFloat(float_val, 'f', -1, 64)
-			} else {
-				fmt.Println(val)
-				fmt.Println(reflect.TypeOf(val))
-				panic("Value could not be cast to string")
-			}
 			// One variable can be used in multiple locations
 			for _, idx := range indices {
-				url_slice[idx] = str_val
+				url_slice[idx] = convert_to_str(val)
 			}
 		}
 	}
@@ -114,8 +118,9 @@ func (request JsonRequestBody) create_ab_request() []string {
 
 	// iterate over the provided AbOptions and remove concurrent or 
 	// number of requests if provided
-	for _, option := range request.AbOptions {
-		ab_options = append(ab_options, option)
+	for key, val := range request.AbOptions {
+		ab_options = append(ab_options, key)
+		ab_options = append(ab_options, convert_to_str(val))
 	}
 	return append(ab_options, request.Url)
 }
