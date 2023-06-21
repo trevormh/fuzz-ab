@@ -41,7 +41,6 @@ func Execute(requests []AbRequest) {
 	for remaining > 0 {
 		chosen, value, ok := reflect.Select(cases)
 		if !ok {
-			// The chosen channel has been closed, so zero out the channel to disable the case
 			cases[chosen].Chan = reflect.ValueOf(nil)
 			remaining -= 1
 			continue

@@ -9,11 +9,10 @@ import (
 
 
 func main() {
-	request_names := os.Args[1:] // specify which requests in json file to run
 	pathPtr := flag.String("path", "", "Path to file containing requests to build and send")
 	flag.Parse()
+	request_names := flag.Args() // optional args to specify which requests in json file to run
 
-	// set the path of the json file
 	var path string
 	if *pathPtr == "" {
 		home, err := os.UserHomeDir()
@@ -26,7 +25,7 @@ func main() {
 	}
 
 	// import json from file and convert to map
-	data, err := Import(request_names, path)
+	data, err := Import(path, request_names)
 	if err != nil {
 		fmt.Println(err)
 		return

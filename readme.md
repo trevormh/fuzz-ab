@@ -19,13 +19,13 @@ With the url `https://www.example.com/{{variable1}}/?param={{variable2}}`, if yo
 
 ## How to use it
 
-Note: AB is required to be installed on your computer this to work. 
+Note: ab is required to be installed on your computer this to work. 
 
 1. Create a JSON request file (see sample for structure) and name it whatever you like.
 2. Build with `go build`
 3. Run with `./fuzz-ab -path=/path/to/requests.json req1 req2 req3`
 
-Where `req1 req2 ....` are optional and names of the requests you wish to run in your requests JSON file. If none of the request name arguments are provided then every argument found in the JSON file will be run. 
+Where `req1 req2 ....` are optional key names of the requests you wish to run in your requests JSON file. If none of the request name arguments are provided then every key and corresponding request data found in the JSON file will be run. 
 
 ## Sample JSON Input File
 

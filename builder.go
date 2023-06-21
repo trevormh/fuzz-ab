@@ -26,15 +26,14 @@ type AbRequest struct {
 // Ex: https://www.example.com/{{some}}/test/{{var}}
 // is turned into [https://www.example.com/, ,/test/, ]
 func (request JsonRequestBody) extract_url_vars() ([]string, map[string][]int) {
-	// regex to find all the starting and ending 
-	// indicse of variable locations in slice
+	// Regex to locate the variables, which are words surrounded
+	// by doubly braces. Ex: {{VARIABLE_NAME}}
 	re := regexp.MustCompile(`{{(.*?)}}`)
 	matches := re.FindAllStringIndex(request.Url, -1)
 
 	var url_slice []string
 	var_map := make(map[string][]int)
 
-	// iterate through the matches and build up the url_slices
 	for i, match := range matches {
 		// add 2 to the start and subtract 2 from the end to offset the braces
 		var_name := request.Url[match[0]+2:match[1]-2] 
@@ -95,15 +94,10 @@ func convert_to_str(val interface{}) (string) {
 // according to the var_locations map. Using this data also
 // sets the URL property on the JsonRequestBody request.
 func (request *JsonRequestBody) replace_url_vars(url_slice []string, var_locations map[string][]int, vars map[string]interface{}) {
-	// vars are the variables in the url to be replaced where each
-	// key is the var name and the value is the value to be inserted
 	for var_name, val := range vars {
 		// check that the variable is actually used in the url.
-		// idxs are the locations in the url_slice where the
-		// value should be placed.
 		if indices, ok := var_locations[var_name]; ok {
-
-			// One variable can be used in multiple locations
+			// One variable can be used in multiple locations so loop over everything...
 			for _, idx := range indices {
 				url_slice[idx] = convert_to_str(val)
 			}
@@ -112,12 +106,10 @@ func (request *JsonRequestBody) replace_url_vars(url_slice []string, var_locatio
 	request.Url = strings.Join(url_slice, "")
 }
 
-// combines the url and ab options to 
+// combines the url and ab options to create an ab request
 func (request JsonRequestBody) create_ab_request() []string {
 	var ab_options []string
 
-	// iterate over the provided AbOptions and remove concurrent or 
-	// number of requests if provided
 	for key, val := range request.AbOptions {
 		ab_options = append(ab_options, key)
 		ab_options = append(ab_options, convert_to_str(val))
@@ -126,7 +118,7 @@ func (request JsonRequestBody) create_ab_request() []string {
 }
 
 
-// Receives a map of request data and builds the ab requests that will be used to call ab
+// Builds map of requests into ab calls/requests
 func BuildAbRequests(request_data map[string]JsonRequestBody) ([]AbRequest, error) {
 	var ab_requests []AbRequest
 
