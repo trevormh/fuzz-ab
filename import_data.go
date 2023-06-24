@@ -18,7 +18,8 @@ type JsonRequestBody struct {
 	NumPerRun int `json:"num_per_run"`
 	Concurrent int `json:"concurrent"`
 	UrlVars map[string][]interface{} `json:"url-vars"`
-	Payload map[string]interface{} `json:"body"`
+	Payload map[string]interface{} `json:"payload"`
+    PayloadVars map[string]interface{} `json:"payload-vars"`
 	AbOptions map[string]interface{} `json:"ab-options"`
 }
 

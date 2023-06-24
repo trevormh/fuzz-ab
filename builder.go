@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/trevormh/go-cartesian-product-map"
 )
@@ -17,18 +18,21 @@ type AbRequest struct {
 	Requests [][]string
 }
 
+// Regex to identify variables in a string
+// Ex: https://www.{{DOMAIN}}.com/{{SLUG}}
+const braces_regex = `{{(.*?)}}`
 
-// Converts the url into a slice of strings where each location
-// of a variable in the url string is an empty index in the slice.
-// Also builds a map with each key being the variable name and
-// its value is a slice of the indexes where the values should
-// be replaced in the sliced url.
-// Ex: https://www.example.com/{{some}}/test/{{var}}
-// is turned into [https://www.example.com/, ,/test/, ]
+
+// Converts a string url into a slice of strings where each location
+// of a variable is an empty index in the slice.
+// Also builds and returns a map with each key being the variable name and
+// its value is a slice of the indexes where the values should be replaced.
+// Ex: https://www.example.com/{{some}}/test/{{var}}/{{some}}
+// is turned into [https://www.example.com/, ,/test/, , ]
+// and also returns map[some:[1,4] var:[3]]
 func (request JsonRequestBody) extract_url_vars() ([]string, map[string][]int) {
-	// Regex to locate the variables, which are words surrounded
-	// by doubly braces. Ex: {{VARIABLE_NAME}}
-	re := regexp.MustCompile(`{{(.*?)}}`)
+	// Find any variables in the url
+	re := regexp.MustCompile(braces_regex)
 	matches := re.FindAllStringIndex(request.Url, -1)
 
 	var url_slice []string
@@ -56,6 +60,64 @@ func (request JsonRequestBody) extract_url_vars() ([]string, map[string][]int) {
 		}
 	}
 	return url_slice, var_map
+}
+
+// swaps variables in a request payload/body with its value
+func (request JsonRequestBody) replace_payload_vars() {
+	var wg sync.WaitGroup
+	wg.Add(1)
+	iterate_payload(&wg, &request.Payload, request.PayloadVars)
+	wg.Wait();
+}
+
+
+/*
+Recursively iterates over the payload request body and
+substitutes variables for their respsective values
+*/
+func iterate_payload(wg *sync.WaitGroup, payload *map[string]interface{}, payload_vars map[string]interface{}) {
+	defer wg.Done()
+
+	for key, val := range *payload {
+		val_type := reflect.TypeOf(val).String()
+		if val_type == "string" || val_type == "int64" {
+			regex_swap_values(key, val, payload, payload_vars)
+		} else {
+			// val is either an object or array that needs to be iterated over
+			if val_map, ok := val.(map[string]interface{}); ok {
+				for key, val := range val_map {
+					v_type := reflect.TypeOf(val).String()
+					// current index value is another object/array...iterate again
+					if value, ok := val.(map[string]interface{}); ok {
+						wg.Add(1)
+						go iterate_payload(wg, &value, payload_vars)
+					// current index value can be assigned a value
+					} else if v_type == "string" || v_type == "int64" {
+						regex_swap_values(key, val, &val_map, payload_vars)
+					} else {
+						fmt.Println("Unable to identify payload field type", key, val)
+					}
+				}
+			}
+		}
+	}
+}
+
+/*
+Swaps variables in a string (identified by double curly braces)
+with a value from a map of variables, keyed by the variable's name.
+*/
+func regex_swap_values(key string, val interface{}, property *map[string]interface{}, payload_vars map[string]interface{}) {
+	val_str := fmt.Sprintf("%v", val) 
+	re := regexp.MustCompile(braces_regex)
+	matches := re.FindAllStringIndex(val_str, -1)
+	if len(matches) > 0 {
+		for _, match := range matches {
+			// +/- 2 to account for the braces
+			var_name := val_str[match[0]+2:match[1]-2] 
+			(*property)[key] = payload_vars[var_name]
+		}
+	}
 }
 
 /*
@@ -123,19 +185,25 @@ func BuildAbRequests(request_data map[string]JsonRequestBody) ([]AbRequest, erro
 	var ab_requests []AbRequest
 
 	for name, request := range request_data {
-		url_slice, var_map := request_data[name].extract_url_vars()
-
 		ab_request := AbRequest {
 			Method: request.Method,
 			NumRuns: request.NumPerRun,
 			Payload: request.Payload,
+		}	
+
+		// find any variables in the payload (if there is one)
+		if len(request.PayloadVars) > 0 && len(request.Payload) > 0 {
+			request_data[name].replace_payload_vars()
 		}
+
+		// find any variables in the URL
+		url_slice, url_var_map := request_data[name].extract_url_vars()
 
 		// Get all the combinations of parameters provided in the json file
 		var_combos := request.get_var_combinations()
 		// Build the ab_calls using these combinations
 		for _, combo := range var_combos {
-			request.replace_url_vars(url_slice, var_map, combo)
+			request.replace_url_vars(url_slice, url_var_map, combo)
 			ab_request.Requests = append(ab_request.Requests, request.create_ab_request())
 			
 		}
