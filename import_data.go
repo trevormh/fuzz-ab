@@ -19,7 +19,7 @@ type JsonRequestBody struct {
 	Concurrent int `json:"concurrent"`
 	UrlVars map[string][]interface{} `json:"url-vars"`
 	Payload map[string]interface{} `json:"payload"`
-    PayloadVars map[string]interface{} `json:"payload-vars"`
+    PayloadVars map[string][]interface{} `json:"payload-vars"`
 	AbOptions map[string]interface{} `json:"ab-options"`
 }
 
