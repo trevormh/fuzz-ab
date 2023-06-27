@@ -4,7 +4,7 @@
 This is a wrapper around [Apache Bench](https://httpd.apache.org/docs/2.4/programs/ab.html) written in Go to provide it with some basic [fuzz testing](https://en.wikipedia.org/wiki/Fuzzing) capabilities. Create a JSON file defining the requests you wish to send (example [here](#sample-request-file)) and fuzz-ab will build all possible combinations of the request variables, turn them into ab requests and execute all of them.
 
 #### For Example...
-If you wish to test the url `www.example.com/some_slug/?id=id_value` with multiple values for `some_slug` and `id_value` you can construct an array of options such as `["a","b"]` for `some_slug` and `[1,2]` for `id_value`. All combinations of those values will be constructed into URLs and made into AB calls
+If you wish to test the url `www.example.com/some_slug/?id=id_value` with multiple values for `some_slug` and `id_value` you can construct an array of options such as `["a","b"]` for `some_slug` and `[1,2]` for `id_value`. All combinations of those values will be constructed into URLs and made into ab calls
 
 `ab www.example.com/a/?param=1`
 
@@ -107,7 +107,7 @@ This example defines 2 requests, one named req1 and a second named req2.
         },
         "ab-options": {
             "-n": 5,
-            "-c": 5,
+            "-c": 2,
             "-H": "csrftoken: token123"
         }
     }
