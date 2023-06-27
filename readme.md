@@ -130,8 +130,8 @@ ab -n 10 -c 5 -C "session=123abc" -H "csrftoken: abc123" https://www.something.c
 `req2` has 3 variables: `some_slug` in the url which has 2 values, `some_param_value` in the payload which has 3 values and `property2_value` also in the payload which has 5 values, for a total of 30 combinations (2 * 3 * 5). ab requires payloads to be in a file which it reads from, so fuzz-ab will create json files for all of these payloads in the /tmp/fuzz-ab directory for each run and removes them immediately after running.
 
 ```
-ab -n 5 -c 2 -H "csrftoken: token123" -T application/x-www-form-urlencoded -p /tmp/fuzz-ab/payload1.json https://www.something.com/postslug1
-ab -n 5 -c 2 -H "csrftoken: token123" -T application/x-www-form-urlencoded -p /tmp/fuzz-ab/payload2.json https://www.something.com/postslug1
+ab -n 5 -c 2 -H "csrftoken: token123" -T application/json -p /tmp/fuzz-ab/payload1.json https://www.something.com/postslug1
+ab -n 5 -c 2 -H "csrftoken: token123" -T application/json -p /tmp/fuzz-ab/payload2.json https://www.something.com/postslug1
 ...
-ab -n 5 -c 2 -H "csrftoken: token123" -T application/x-www-form-urlencoded -p /tmp/fuzz-ab/payload30.json https://www.something.com/postslug2
+ab -n 5 -c 2 -H "csrftoken: token123" -T application/json -p /tmp/fuzz-ab/payload30.json https://www.something.com/postslug2
 ```
