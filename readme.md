@@ -4,7 +4,7 @@
 This is an [Apache Bench](https://httpd.apache.org/docs/2.4/programs/ab.html) request builder written in Go to provide it with some basic [fuzz testing](https://en.wikipedia.org/wiki/Fuzzing) abilities. Create a JSON file defining the requests you wish ab to send and fuzz-ab will build all possible combinations of the request variables, turn them into ab requests and execute all of them.
 
 #### For Example...
-If you wish to test the url `www.example.com/some_slug/?id=id_value` with multiple values for `some_slug` and `id_value` you can construct an array of options such as `["a","b"]` for `some_slug` and `[1,2]` for `id_value`. All combinations of those values will be constructed into URLs and made into AB calls
+If you wish to test the url `www.example.com/some_slug/?id=id_value` with multiple values for `some_slug` and `id_value` you can construct an array of options such as `["a","b"]` for `some_slug` and `[1,2]` for `id_value`. All combinations of those values will be constructed into URLs and made into ab calls
 
 `ab www.example.com/a/?param=1`
 
@@ -109,7 +109,7 @@ This example defines 2 requests, one named req1 and a second named req2.
         },
         "ab-options": {
             "-n": 5,
-            "-c": 5,
+            "-c": 2,
             "-H": "csrftoken: token123"
         }
     }
@@ -132,8 +132,8 @@ ab -n 10 -c 5 -C "session=123abc" -H "csrftoken: abc123" https://www.something.c
 `req2` has 3 variables: `some_slug` in the url which has 2 values, `some_param_value` in the payload which has 3 values and `property2_value` also in the payload which has 5 values, for a total of 30 combinations (2 * 3 * 5). ab requires payloads to be in a file which it reads from, so fuzz-ab will create json files for all of these payloads in the /tmp/fuzz-ab directory for each run and removes them immediately after running.
 
 ```
-ab -n 5 -c 2 -H "csrftoken: token123" -T application/x-www-form-urlencoded -p /tmp/fuzz-ab/payload1.json https://www.something.com/postslug1
-ab -n 5 -c 2 -H "csrftoken: token123" -T application/x-www-form-urlencoded -p /tmp/fuzz-ab/payload2.json https://www.something.com/postslug1
+ab -n 5 -c 2 -H "csrftoken: token123" -T application/json -p /tmp/fuzz-ab/payload1.json https://www.something.com/postslug1
+ab -n 5 -c 2 -H "csrftoken: token123" -T application/json -p /tmp/fuzz-ab/payload2.json https://www.something.com/postslug1
 ...
-ab -n 5 -c 2 -H "csrftoken: token123" -T application/x-www-form-urlencoded -p /tmp/fuzz-ab/payload30.json https://www.something.com/postslug2
+ab -n 5 -c 2 -H "csrftoken: token123" -T application/json -p /tmp/fuzz-ab/payload30.json https://www.something.com/postslug2
 ```
