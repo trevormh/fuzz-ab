@@ -15,6 +15,7 @@ import (
 
 type AbRequest struct {
 	Requests [][]string
+	Delay [2]int
 	PayloadPaths []string
 }
 
@@ -67,8 +68,6 @@ func replacePayloadVars(payload map[string]interface{},  payload_vars map[string
 	iteratePayload(&wg, payload, payload_vars)
 	wg.Wait();
 }
-
-
 
 // Recursively iterates over the payload request body and
 // substitutes variables for their respsective values
@@ -174,7 +173,6 @@ func (request *JsonRequestBody) setUrl(url_slice []string, var_locations map[str
 
 // combines the url, payload and ab options to create an ab request
 func (ab *AbRequest) createAbRequest(request JsonRequestBody) {
-	
 	var req_params []string
 	for key, val := range request.AbOptions {
 		req_params = append(req_params, key)
@@ -199,6 +197,25 @@ func (ab *AbRequest) createAbRequest(request JsonRequestBody) {
 	}
 }
 
+func (ab *AbRequest) setDelay(delay interface{}) {
+	switch delay.(type) {
+	case nil:
+		ab.Delay = [2]int{0, 0}
+	case float64:
+		int_val := ConvertToInt(delay)
+		ab.Delay = [2]int{int_val, int_val}
+	case []interface{}:
+		var int_vals [2]int
+		for i, v := range delay.([]interface{}) {
+			int_vals[i] = ConvertToInt(v)
+		}
+		ab.Delay = [2]int{int_vals[0], int_vals[1]}
+	default:
+		fmt.Println("Unable to set delay type. Must be int or array of ints of length 2. Defaulting to no delay.")
+		ab.Delay = [2]int{0, 0}
+	}
+}
+
 
 // Builds map of requests into ab calls/requests
 func BuildAbRequests(request_data map[string]JsonRequestBody) ([]AbRequest, error) {
@@ -207,8 +224,8 @@ func BuildAbRequests(request_data map[string]JsonRequestBody) ([]AbRequest, erro
 	for name, request := range request_data {
 		var ab AbRequest
 
-		// Find any variables in the payload and get all the combinations
-		// var payloads []string
+		// Find any variables in the payload, get all the combinations
+		// and swap the variable values 
 		if len(request.PayloadVars) > 0 && len(request.Payload) > 0 {
 			payload_combos := request.getVarCombinations(request.PayloadVars)
 			for i, combo := range payload_combos {
@@ -220,13 +237,15 @@ func BuildAbRequests(request_data map[string]JsonRequestBody) ([]AbRequest, erro
 		}
 
 		url_slice, url_var_map := request_data[name].extractUrlVars()
-
 		// Get all the combinations of parameters provided in the json file and build the ab_calls
 		url_var_combos := request.getVarCombinations(request.UrlVars)
 		for _, combo := range url_var_combos {
 			request.setUrl(url_slice, url_var_map, combo)
 			ab.createAbRequest(request)
 		}
+
+		ab.setDelay(request.Delay)
+
 		ab_requests = append(ab_requests, ab)
 	}
 

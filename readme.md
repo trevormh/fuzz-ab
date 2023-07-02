@@ -1,7 +1,7 @@
 # Fuzz-AB
 
 ## What is it?
-This is a wrapper around [Apache Bench](https://httpd.apache.org/docs/2.4/programs/ab.html) written in Go to provide it with some basic [fuzz testing](https://en.wikipedia.org/wiki/Fuzzing) capabilities. Create a JSON file defining the requests you wish to send (example [here](#sample-request-file)) and fuzz-ab will build all possible combinations of the request variables, turn them into ab requests and execute all of them.
+This is an [Apache Bench](https://httpd.apache.org/docs/2.4/programs/ab.html) request builder written in Go to provide it with some basic [fuzz testing](https://en.wikipedia.org/wiki/Fuzzing) abilities. Create a JSON file defining the requests you wish ab to send and fuzz-ab will build all possible combinations of the request variables, turn them into ab requests and execute all of them.
 
 #### For Example...
 If you wish to test the url `www.example.com/some_slug/?id=id_value` with multiple values for `some_slug` and `id_value` you can construct an array of options such as `["a","b"]` for `some_slug` and `[1,2]` for `id_value`. All combinations of those values will be constructed into URLs and made into AB calls
@@ -58,6 +58,8 @@ This is the input file used to define the ab requests to make. The file must con
 `url-vars` object - optional. JSON object to define values for variables in the URL. Keys are the variable names in the url, values must be array of strings or ints.
 
 `method` string - optional. HTTP method for the request. Defaults to `GET` if not specified.
+
+`delay` int or array of ints - optional. Creates a delay between each ab request to more realistically simulate traffic. A single integer value will create a delay between each request measured in milliseconds. When an array of 2 integers is provided it is treated as a range, and a value will be randomly selected within that range for each request.
 
 `ab-options` object - optional. JSON object to define [apache bench](https://httpd.apache.org/docs/2.4/programs/ab.html) paramaters. Ex: `"ab-options": {"-c": 10}`
 

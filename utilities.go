@@ -28,6 +28,7 @@ func CopyMap(m map[string]interface{}) map[string]interface{} {
     return cp
 }
 
+
 func ConvertToStr(val interface{}) (string) {
 	var str_val string
 	if str, ok := val.(string); ok {
@@ -45,6 +46,25 @@ func ConvertToStr(val interface{}) (string) {
 }
 
 
+func ConvertToFloat32(val interface{}) (float32) {
+	var float_val float32
+	if str, ok := val.(string); ok {
+		res, err := strconv.ParseFloat(str, 32)
+		if err != nil {
+			panic("Unable to convert to int")
+		}
+		float_val = float32(res)
+	} else if intval, ok := val.(int); ok {
+		float_val = float32(intval)
+	} else {
+		fmt.Println(val)
+		fmt.Println(reflect.TypeOf(val))
+		panic("Value could not be cast to float32")
+	}
+	return float_val
+}
+
+
 func ConvertToInt(val interface{}) (int) {
 	var int_val int
 	if str, ok := val.(string); ok {
@@ -53,6 +73,10 @@ func ConvertToInt(val interface{}) (int) {
 			panic("Unable to convert to int")
 		}
 		int_val = res
+	} else if float_val, ok := val.(float32); ok {
+			int_val = int(float_val)
+	} else if float_val, ok := val.(float64); ok {
+		int_val = int(float_val)
 	} else {
 		fmt.Println(val)
 		fmt.Println(reflect.TypeOf(val))

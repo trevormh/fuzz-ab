@@ -12,9 +12,9 @@ func printResults(results Result) {
 	for i := 1; i <= len(results.ExtractedResult); i ++ {
 		fmt.Printf("Group %#v - Complete: %#v Failed: %#v Per Second: %#v\n",
 		i,
-		results.ExtractedResult[i-1]["complete"],
-		results.ExtractedResult[i-1]["failed"],
-		results.ExtractedResult[i-1]["per_second"],
+		results.ExtractedResult[i-1].Complete,
+		results.ExtractedResult[i-1].Failed,
+		results.ExtractedResult[i-1].PerSecond,
 		)
 	}
 

@@ -13,6 +13,7 @@ type JsonRequest struct {
 type JsonRequestBody struct {
 	Url string `json:"url"`
 	Method string `json:"method"`
+	Delay interface{} `json:"delay"`
 	UrlVars map[string][]interface{} `json:"url-vars"`
 	Payload map[string]interface{} `json:"payload"`
     PayloadVars map[string][]interface{} `json:"payload-vars"`
